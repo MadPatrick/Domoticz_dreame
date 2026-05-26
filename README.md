@@ -4,15 +4,12 @@ Domoticz plugin voor een Dreame robotstofzuiger (lokale aansturing via `python-m
 
 ## Setup en installatie
 
-1. **Kopieer de plugin naar Domoticz**
-   Plaats `plugin.py` in:
-   `domoticz/plugins/domoticz-dreame-plus/plugin.py`
+1. **Kopieer de plugin naar Domoticz:** plaats `plugin.py` in `domoticz/plugins/domoticz-dreame-plus/plugin.py`.
 
-2. **Installeer dependency**
-   Gebruik dezelfde Python-omgeving als Domoticz:
-   ```bash
-   pip3 install python-miio
-   ```
+2. **Installeer dependency** (in dezelfde Python-omgeving als Domoticz):
+    ```bash
+    pip3 install python-miio
+    ```
 
 3. **Herstart Domoticz**
 
