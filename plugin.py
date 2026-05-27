@@ -32,12 +32,13 @@ else:
     _IMPORT_ERROR = None
 
 UNIT_STATUS = 1
+UNIT_CONTROL = 2
 UNIT_BATTERY = 3
 UNIT_ERROR = 4
 UNIT_FAN = 5
 UNIT_WATER = 6
 UNIT_DETAILS = 7
-UNIT_CONTROL = 12
+UNIT_CONTROL_LEGACY = 12
 
 STATUS_LEVELS = {0:'Unknown',10:'Idle',20:'Cleaning',30:'Paused',40:'Returning',50:'Docked',60:'Charging',70:'Error'}
 FAN_LEVELS = {0:'Unknown',10:'Quiet',20:'Standard',30:'Strong',40:'Turbo'}
@@ -108,7 +109,7 @@ class BasePlugin:
             self.update_error('Not connected')
             return
         try:
-            if Unit == UNIT_CONTROL:
+            if Unit in (UNIT_CONTROL, UNIT_CONTROL_LEGACY):
                 actions = {10: 'START', 20: 'PAUSE', 30: 'CHARGE', 40: 'STOP'}
                 if Level in actions:
                     self.handle_control(actions[Level])
@@ -204,6 +205,9 @@ class BasePlugin:
         if UNIT_STATUS not in Devices:
             Domoticz.Device(Name='Dreame Status', Unit=UNIT_STATUS, TypeName='Text', Used=1).Create()
         self.ensure_selector(UNIT_CONTROL, 'Dreame Control', CONTROL_LEVELS, level_off_hidden='true')
+        if UNIT_CONTROL in Devices and UNIT_CONTROL_LEGACY in Devices:
+            Domoticz.Log('Removing legacy Dreame Control device on unit {}'.format(UNIT_CONTROL_LEGACY))
+            Devices[UNIT_CONTROL_LEGACY].Delete()
         if UNIT_BATTERY not in Devices:
             Domoticz.Device(Name='Dreame Battery', Unit=UNIT_BATTERY, TypeName='Percentage', Used=1).Create()
         if UNIT_ERROR not in Devices:
@@ -213,7 +217,7 @@ class BasePlugin:
         if UNIT_DETAILS not in Devices:
             Domoticz.Device(Name='Dreame Details', Unit=UNIT_DETAILS, TypeName='Text', Used=1).Create()
 
-    def ensure_selector(self, unit: int, name: str, levels: Dict[int, str], selector_style: str = '1', level_off_hidden: str = 'false'):
+    def ensure_selector(self, unit: int, name: str, levels: Dict[int, str], selector_style: str = '0', level_off_hidden: str = 'false'):
         options = {
             'LevelActions': '|'.join([''] * len(levels)),
             'LevelNames': '|'.join(levels[k] for k in sorted(levels)),
