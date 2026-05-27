@@ -1,18 +1,18 @@
-# Domoticz Dreame API Plugin v0.8.0 complete
+# Domoticz Dreame API Plugin v0.8.1
 
-Dit is een complete schone versie voor jouw Dreame L40 Ultra / `dreame.vacuum.r2492j`.
+This is a clean and complete plugin version for Dreame robot vacuums, including the Dreame L40 Ultra / `dreame.vacuum.r2492j`.
 
-## Wat zit erin
+## Features
 
-- Werkende DreameHome backend uit de eerder werkende `v90.5.2`
-- Geen Xiaomi
-- Geen `python-miio`
-- Geen Home Assistant dependency
-- Modeldetectie
-- Status, batterij, foutmelding, details
-- Start / Pause / Dock / Stop / Locate
-- Zuigkracht selector
-- Waterniveau selector
+- Working Dreame Home backend (based on the earlier stable `v90.5.2`)
+- No Xiaomi dependency
+- No `python-miio`
+- No Home Assistant dependency
+- Model detection
+- Status, battery, error state, and details
+- Start / Pause / Dock / Stop / Locate commands
+- Suction power selector
+- Water level selector
 - Room cache + Room Clean selector
 - Tools:
   - `learn_room.py`
@@ -20,70 +20,73 @@ Dit is een complete schone versie voor jouw Dreame L40 Ultra / `dreame.vacuum.r2
   - `dump_properties.py`
   - `test_fastcommand_probe.py`
 
-## Installatie schoon
+## Installation (Git)
 
 ```bash
 cd /home/patrick/domoticz/plugins
 sudo systemctl stop domoticz
 
-mv dreame dreame.backup.$(date +%Y%m%d_%H%M%S)
-mkdir dreame
-cd dreame
-unzip /pad/naar/domoticz_dreame_api_v0_8_0_complete.zip
+if [ -d dreame ]; then
+  mv dreame dreame.backup.$(date +%Y%m%d_%H%M%S)
+fi
 
+git clone https://github.com/MadPatrick/Domoticz_dreame.git dreame
+cd dreame
 pip3 install -U requests
+
 sudo systemctl start domoticz
 ```
 
-## Kamers beheren
+## Managing Rooms
 
-Omdat de L40 map/room-data niet via de normale `sendCommand` route komt, gebruikt v0.8.0 een stabiele room cache.
+Because L40 map/room data is not returned through the regular `sendCommand` route, this version uses a stable room cache.
 
-Lijst tonen:
+Show room list:
 
 ```bash
 python3 learn_room.py list
 ```
 
-Kamer toevoegen:
+Add room:
 
 ```bash
-python3 learn_room.py add --id 16 --name "Keuken"
-python3 learn_room.py add --id 17 --name "Woonkamer"
+python3 learn_room.py add --id 16 --name "Kitchen"
+python3 learn_room.py add --id 17 --name "Living Room"
 ```
 
-Kamer verwijderen:
+Delete room:
 
 ```bash
 python3 learn_room.py delete --id 16
 ```
 
-Daarna Domoticz herstarten.  
-Als de selector niet vernieuwt omdat jouw Domoticz geen `UpdateOptions()` ondersteunt, verwijder dan eenmalig het device `Dreame Room Clean` in Domoticz en herstart Domoticz.
+After changes, restart Domoticz.  
+If the selector does not refresh because your Domoticz version does not support `UpdateOptions()`, remove the `Dreame Room Clean` device once in Domoticz and restart Domoticz.
 
-## Room ID's vinden
+## Finding Room IDs
 
-De API geeft bij jouw model nog geen rooms terug via de normale route. Mogelijke manieren:
+For this model, rooms may not be returned by the normal API route. Possible options:
 
-1. Test met:
+1. Test with:
+
 ```bash
 python3 test_fastcommand_probe.py --username 'mail' --password 'pass' --country eu
 ```
 
-2. Gebruik app/log/proxy analyse om segment IDs te vinden.
+2. Use app/log/proxy analysis to find segment IDs.
 
-3. Als je room IDs al kent: voeg ze direct toe met `learn_room.py`.
+3. If you already know your room IDs, add them directly with `learn_room.py`.
 
-## Belangrijk
+## Important
 
-De room-clean payload gebruikt:
+The room-clean payload uses:
 
 ```json
 [[room_id, 1, 1]]
 ```
 
-via Dreame `START_CUSTOM`. Dit is de meest waarschijnlijke segment-clean route voor deze modelgeneratie, maar kan per firmware afwijken.
-
+via Dreame `START_CUSTOM`. This is the most likely segment-clean route for this model generation, but firmware differences may apply.
 
 ## v0.8.1
+
 - Device names now use the robot name from Dreame Home (example: Truus Status).
