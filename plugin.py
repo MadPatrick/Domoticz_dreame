@@ -32,15 +32,17 @@ else:
     _IMPORT_ERROR = None
 
 UNIT_STATUS = 1
-UNIT_CONTROL = 2
 UNIT_BATTERY = 3
 UNIT_ERROR = 4
 UNIT_FAN = 5
 UNIT_WATER = 6
 UNIT_DETAILS = 7
+UNIT_START = 8
+UNIT_PAUSE = 9
+UNIT_DOCK = 10
+UNIT_STOP = 11
 
 STATUS_LEVELS = {0:'Unknown',10:'Idle',20:'Cleaning',30:'Paused',40:'Returning',50:'Docked',60:'Charging',70:'Error'}
-CONTROL_LEVELS = {10:'Start',20:'Pause',30:'Dock',40:'Stop'}
 FAN_LEVELS = {0:'Unknown',10:'Quiet',20:'Standard',30:'Strong',40:'Turbo'}
 WATER_LEVELS = {0:'Unknown',10:'Low',20:'Medium',30:'High'}
 
@@ -108,8 +110,14 @@ class BasePlugin:
             self.update_error('Not connected')
             return
         try:
-            if Unit == UNIT_CONTROL:
-                self.handle_control(Level)
+            if Unit == UNIT_START:
+                self.handle_control('START')
+            elif Unit == UNIT_PAUSE:
+                self.handle_control('PAUSE')
+            elif Unit == UNIT_DOCK:
+                self.handle_control('CHARGE')
+            elif Unit == UNIT_STOP:
+                self.handle_control('STOP')
             elif Unit == UNIT_FAN:
                 self.handle_fan(Level)
             elif Unit == UNIT_WATER:
@@ -122,16 +130,8 @@ class BasePlugin:
         finally:
             self.poll(force=True)
 
-    def handle_control(self, level: int):
-        if level == 10:
-            self.api.call_action(self.did, self.bind_domain, ACTION['START'])
-        elif level == 20:
-            self.api.call_action(self.did, self.bind_domain, ACTION['PAUSE'])
-        elif level == 30:
-            self.api.call_action(self.did, self.bind_domain, ACTION['CHARGE'])
-        elif level == 40:
-            self.api.call_action(self.did, self.bind_domain, ACTION['STOP'])
-        self.update_selector(UNIT_CONTROL, level)
+    def handle_control(self, action: str):
+        self.api.call_action(self.did, self.bind_domain, ACTION[action])
 
     def handle_fan(self, level: int):
         mapping = {10: 0, 20: 1, 30: 2, 40: 3}
@@ -207,7 +207,10 @@ class BasePlugin:
     def create_devices(self):
         if UNIT_STATUS not in Devices:
             Domoticz.Device(Name='Dreame Status', Unit=UNIT_STATUS, TypeName='Text', Used=1).Create()
-        self.ensure_selector(UNIT_CONTROL, 'Dreame Control', CONTROL_LEVELS, selector_style='1', level_off_hidden='true')
+        self.ensure_push_button(UNIT_START, 'Dreame Start')
+        self.ensure_push_button(UNIT_PAUSE, 'Dreame Pause')
+        self.ensure_push_button(UNIT_DOCK, 'Dreame Dock')
+        self.ensure_push_button(UNIT_STOP, 'Dreame Stop')
         if UNIT_BATTERY not in Devices:
             Domoticz.Device(Name='Dreame Battery', Unit=UNIT_BATTERY, TypeName='Percentage', Used=1).Create()
         if UNIT_ERROR not in Devices:
@@ -216,6 +219,18 @@ class BasePlugin:
         self.ensure_selector(UNIT_WATER, 'Dreame Water', WATER_LEVELS)
         if UNIT_DETAILS not in Devices:
             Domoticz.Device(Name='Dreame Details', Unit=UNIT_DETAILS, TypeName='Text', Used=1).Create()
+
+    def ensure_push_button(self, unit: int, name: str):
+        if unit in Devices:
+            return
+        Domoticz.Device(
+            Name=name,
+            Unit=unit,
+            TypeName='Switch',
+            Switchtype=9,
+            Image=7,
+            Used=1,
+        ).Create()
 
     def ensure_selector(self, unit: int, name: str, levels: Dict[int, str], selector_style: str = '0', level_off_hidden: str = 'false'):
         if unit in Devices:
