@@ -37,14 +37,12 @@ UNIT_ERROR = 4
 UNIT_FAN = 5
 UNIT_WATER = 6
 UNIT_DETAILS = 7
-UNIT_START = 8
-UNIT_PAUSE = 9
-UNIT_DOCK = 10
-UNIT_STOP = 11
+UNIT_CONTROL = 12
 
 STATUS_LEVELS = {0:'Unknown',10:'Idle',20:'Cleaning',30:'Paused',40:'Returning',50:'Docked',60:'Charging',70:'Error'}
 FAN_LEVELS = {0:'Unknown',10:'Quiet',20:'Standard',30:'Strong',40:'Turbo'}
 WATER_LEVELS = {0:'Unknown',10:'Low',20:'Medium',30:'High'}
+CONTROL_LEVELS = {0:'Off',10:'Start',20:'Pause',30:'Dock',40:'Stop'}
 
 class BasePlugin:
     def __init__(self):
@@ -110,14 +108,12 @@ class BasePlugin:
             self.update_error('Not connected')
             return
         try:
-            if Unit == UNIT_START:
-                self.handle_control('START')
-            elif Unit == UNIT_PAUSE:
-                self.handle_control('PAUSE')
-            elif Unit == UNIT_DOCK:
-                self.handle_control('CHARGE')
-            elif Unit == UNIT_STOP:
-                self.handle_control('STOP')
+            if Unit == UNIT_CONTROL:
+                actions = {10: 'START', 20: 'PAUSE', 30: 'CHARGE', 40: 'STOP'}
+                if Level in actions:
+                    self.handle_control(actions[Level])
+                else:
+                    Domoticz.Log('Unknown control level {}'.format(Level))
             elif Unit == UNIT_FAN:
                 self.handle_fan(Level)
             elif Unit == UNIT_WATER:
@@ -207,10 +203,7 @@ class BasePlugin:
     def create_devices(self):
         if UNIT_STATUS not in Devices:
             Domoticz.Device(Name='Dreame Status', Unit=UNIT_STATUS, TypeName='Text', Used=1).Create()
-        self.ensure_push_button(UNIT_START, 'Dreame Start')
-        self.ensure_push_button(UNIT_PAUSE, 'Dreame Pause')
-        self.ensure_push_button(UNIT_DOCK, 'Dreame Dock')
-        self.ensure_push_button(UNIT_STOP, 'Dreame Stop')
+        self.ensure_selector(UNIT_CONTROL, 'Dreame Control', CONTROL_LEVELS, level_off_hidden='true')
         if UNIT_BATTERY not in Devices:
             Domoticz.Device(Name='Dreame Battery', Unit=UNIT_BATTERY, TypeName='Percentage', Used=1).Create()
         if UNIT_ERROR not in Devices:
@@ -219,18 +212,6 @@ class BasePlugin:
         self.ensure_selector(UNIT_WATER, 'Dreame Water', WATER_LEVELS)
         if UNIT_DETAILS not in Devices:
             Domoticz.Device(Name='Dreame Details', Unit=UNIT_DETAILS, TypeName='Text', Used=1).Create()
-
-    def ensure_push_button(self, unit: int, name: str):
-        if unit in Devices:
-            return
-        Domoticz.Device(
-            Name=name,
-            Unit=unit,
-            TypeName='Switch',
-            Switchtype=9,
-            Image=7,
-            Used=1,
-        ).Create()
 
     def ensure_selector(self, unit: int, name: str, levels: Dict[int, str], selector_style: str = '1', level_off_hidden: str = 'false'):
         options = {
