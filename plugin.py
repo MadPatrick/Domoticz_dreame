@@ -1,5 +1,5 @@
 """
-<plugin key="DreameAPI" name="Dreame API Vacuum" author="Geeve + ChatGPT" version="90.5.2" wikilink="" externallink="">
+<plugin key="DreameAPI" name="Dreame API Vacuum" author="MadPatrick" version="0.5.2" wikilink="" externallink="">
     <params>
         <param field="Mode1" label="Dreame Home email" width="260px" required="true" default="" />
         <param field="Mode2" label="Dreame Home password" width="260px" required="true" default="" password="true" />
