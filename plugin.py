@@ -261,7 +261,7 @@ class BasePlugin:
     def handle_control(self, action_name: str):
         action = ACTION.get(action_name)
         if not action:
-            Domoticz.Error("Action {} is not available in dreame_api ACTION mapping".format(action_name))
+            Domoticz.Error("Action {} is not available in dreame_api ACTION mapping; first check device firmware compatibility, then update dreame_api if needed".format(action_name))
             return
         self.api.call_action(self.did, self.bind_domain, action)
 
@@ -272,7 +272,7 @@ class BasePlugin:
             return
         p = PROP.get("SUCTION_LEVEL")
         if not p:
-            Domoticz.Error("SUCTION_LEVEL property mapping is missing in dreame_api PROP")
+            Domoticz.Error("SUCTION_LEVEL property not found; check device compatibility or update dreame_api library (fan level: {})".format(level))
             return
         self.api.set_properties(self.did, self.bind_domain, [{"did": p["did"], "siid": p["siid"], "piid": p["piid"], "value": mapping[level]}])
         self.update_selector(UNIT_FAN, level)
@@ -284,7 +284,7 @@ class BasePlugin:
             return
         p = PROP.get("WATER_VOLUME")
         if not p:
-            Domoticz.Error("WATER_VOLUME property mapping is missing in dreame_api PROP")
+            Domoticz.Error("WATER_VOLUME property not found; check device compatibility or update dreame_api library (water level: {})".format(level))
             return
         self.api.set_properties(self.did, self.bind_domain, [{"did": p["did"], "siid": p["siid"], "piid": p["piid"], "value": mapping[level]}])
         self.update_selector(UNIT_WATER, level)
