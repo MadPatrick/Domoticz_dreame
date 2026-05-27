@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "note": "Add rooms with: python3 learn_room.py add --id 16 --name Keuken",
+  "rooms": []
+}

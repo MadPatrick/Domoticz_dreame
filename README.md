@@ -1,71 +1,89 @@
-# Domoticz Dreame API Plugin (v0.5.2)
+# Domoticz Dreame API Plugin v0.8.0 complete
 
-This plugin connects Domoticz to Dreame robot vacuums through the **Dreame Home Cloud API**.
+Dit is een complete schone versie voor jouw Dreame L40 Ultra / `dreame.vacuum.r2492j`.
 
-It does **not** use Xiaomi APIs, `python-miio`, or Home Assistant.
+## Wat zit erin
 
-The implementation is based on the publicly visible reverse-engineered API shape used by the Homey Dreame cloud integration. Dreame may change these cloud endpoints at any time.
+- Werkende DreameHome backend uit de eerder werkende `v90.5.2`
+- Geen Xiaomi
+- Geen `python-miio`
+- Geen Home Assistant dependency
+- Modeldetectie
+- Status, batterij, foutmelding, details
+- Start / Pause / Dock / Stop / Locate
+- Zuigkracht selector
+- Waterniveau selector
+- Room cache + Room Clean selector
+- Tools:
+  - `learn_room.py`
+  - `test_login.py`
+  - `dump_properties.py`
+  - `test_fastcommand_probe.py`
 
-## Features
-
-- Login with Dreame Home email/password
-- Discover devices linked to the account
-- Read status, battery, and error information
-- Automatic fallback from cloud cache to live relay if cached data is empty
-- Send control actions: Start, Pause, Dock (Charge), Stop, Locate
-- Set suction level and water volume through MIoT properties
-
-## Requirements
-
-- Domoticz with Python plugin support
-- Python 3
-- `requests` package installed
-
-## Installation
+## Installatie schoon
 
 ```bash
-cd /path/to/domoticz/plugins
-rm -rf dreame
+cd /home/patrick/domoticz/plugins
+sudo systemctl stop domoticz
+
+mv dreame dreame.backup.$(date +%Y%m%d_%H%M%S)
 mkdir dreame
 cd dreame
-unzip /path/to/domoticz_dreame_api_v90_5.zip
+unzip /pad/naar/domoticz_dreame_api_v0_8_0_complete.zip
+
 pip3 install -U requests
-sudo systemctl restart domoticz
+sudo systemctl start domoticz
 ```
 
-## Test Login Outside Domoticz
+## Kamers beheren
 
-Use the included script to validate credentials and device discovery:
+Omdat de L40 map/room-data niet via de normale `sendCommand` route komt, gebruikt v0.8.0 een stabiele room cache.
+
+Lijst tonen:
 
 ```bash
-cd /path/to/domoticz/plugins/dreame
-python3 test_login.py --username 'your@email.com' --password 'yourDreamePassword' --country eu
+python3 learn_room.py list
 ```
 
-If your Dreame account was created with Google or Apple login, first set a password in the Dreame Home app:
+Kamer toevoegen:
 
-`Profile -> Settings -> Account and Security -> Password`
+```bash
+python3 learn_room.py add --id 16 --name "Keuken"
+python3 learn_room.py add --id 17 --name "Woonkamer"
+```
 
-## Domoticz Hardware Settings
+Kamer verwijderen:
 
-- **Mode1**: Dreame Home email
-- **Mode2**: Dreame Home password
-- **Mode3**: Region (usually `eu`)
-- **Mode4**: Optional device ID (`did`); leave empty to use the first vacuum
-- **Mode5**: Poll interval in seconds (for example `30`)
-- **Mode6**: Debug mode (`False` or `True`)
+```bash
+python3 learn_room.py delete --id 16
+```
 
-## Notes
+Daarna Domoticz herstarten.  
+Als de selector niet vernieuwt omdat jouw Domoticz geen `UpdateOptions()` ondersteunt, verwijder dan eenmalig het device `Dreame Room Clean` in Domoticz en herstart Domoticz.
 
-- The plugin uses reverse-engineered cloud endpoints.
-- API behavior can change without notice if Dreame updates backend services.
-- Some Dreame Home-only models may return an empty cloud cache; this version automatically switches to live `get_properties` calls through the Dreame command relay.
+## Room ID's vinden
 
-## Changelog
+De API geeft bij jouw model nog geen rooms terug via de normale route. Mogelijke manieren:
 
-### v90.5.2
+1. Test met:
+```bash
+python3 test_fastcommand_probe.py --username 'mail' --password 'pass' --country eu
+```
 
-- Confirmed Dreame Home API login, device discovery, and status path
-- Added fallback for models returning empty cloud cache (`raw: {}`)
-- Fixed `set_properties` payload for suction and water levels by using per-property `did` values
-- No Xiaomi, `python-miio`, or Home Assistant dependency
+2. Gebruik app/log/proxy analyse om segment IDs te vinden.
+
+3. Als je room IDs al kent: voeg ze direct toe met `learn_room.py`.
+
+## Belangrijk
+
+De room-clean payload gebruikt:
+
+```json
+[[room_id, 1, 1]]
+```
+
+via Dreame `START_CUSTOM`. Dit is de meest waarschijnlijke segment-clean route voor deze modelgeneratie, maar kan per firmware afwijken.
+
+
+## v0.8.1
+- Device names now use the robot name from Dreame Home (example: Truus Status).
