@@ -3,7 +3,19 @@
     <params>
         <param field="Mode1" label="Dreame Home email" width="260px" required="true" default="" />
         <param field="Mode2" label="Dreame Home password" width="260px" required="true" default="" password="true" />
-        <param field="Mode3" label="Region" width="80px" required="true" default="eu" />
+        <param field="Mode3" label="Region" width="100px" required="true">
+            <options>
+                <option label="EU" value="eu" default="true" />
+                <option label="DE" value="de" />
+                <option label="CN" value="cn" />
+                <option label="US" value="us" />
+                <option label="RU" value="ru" />
+                <option label="TW" value="tw" />
+                <option label="SG" value="sg" />
+                <option label="IN" value="in" />
+                <option label="I2" value="i2" />
+            </options>
+        </param>
         <param field="Mode4" label="Device ID (optional)" width="220px" required="false" default="" />
         <param field="Mode5" label="Poll seconds" width="80px" required="false" default="30" />
         <param field="Mode6" label="Debug" width="75px">
