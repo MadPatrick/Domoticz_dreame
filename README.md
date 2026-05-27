@@ -1,59 +1,69 @@
-# Domoticz Dreame API plugin v90.5.2
+# Domoticz Dreame API Plugin (v90.5.2)
 
-Deze versie gebruikt **Dreame Home Cloud API**, niet Xiaomi, niet `python-miio`, en niet Home Assistant.
+This plugin connects Domoticz to Dreame robot vacuums through the **Dreame Home Cloud API**.
 
-Gebaseerd op de publiek zichtbare reverse-engineered Dreame Home API-vorm van de Homey Dreame Cloud app. Die app meldt expliciet dat hij via de Dreame Home cloud API werkt, alleen email/password-login ondersteunt, en o.a. X40/X30/L20/L10 ondersteunt. L40 zou dezelfde familie moeten zijn, maar Dreame kan endpoints wijzigen.
+It does **not** use Xiaomi APIs, `python-miio`, or Home Assistant.
 
-## Installatie
+The implementation is based on the publicly visible reverse-engineered API shape used by the Homey Dreame cloud integration. Dreame may change these cloud endpoints at any time.
+
+## Features
+
+- Login with Dreame Home email/password
+- Discover devices linked to the account
+- Read status, battery, and error information
+- Automatic fallback from cloud cache to live relay if cached data is empty
+- Send control actions: Start, Pause, Dock (Charge), Stop, Locate
+- Set suction level and water volume through MIoT properties
+
+## Requirements
+
+- Domoticz with Python plugin support
+- Python 3
+- `requests` package installed
+
+## Installation
 
 ```bash
-cd /home/patrick/domoticz/plugins
+cd /path/to/domoticz/plugins
 rm -rf dreame
 mkdir dreame
 cd dreame
-unzip /pad/naar/domoticz_dreame_api_v90_5.zip
+unzip /path/to/domoticz_dreame_api_v90_5.zip
 pip3 install -U requests
 sudo systemctl restart domoticz
 ```
 
-## Eerst buiten Domoticz testen
+## Test Login Outside Domoticz
+
+Use the included script to validate credentials and device discovery:
 
 ```bash
-cd /home/patrick/domoticz/plugins/dreame
-python3 test_login.py --username 'jouw@email.nl' --password 'jouwDreameWachtwoord' --country eu
+cd /path/to/domoticz/plugins/dreame
+python3 test_login.py --username 'your@email.com' --password 'yourDreamePassword' --country eu
 ```
 
-Werkt je account met Google/Apple login? Stel dan in de DreameHome app eerst een wachtwoord in:
-Profile -> Settings -> Account and Security -> Password.
+If your Dreame account was created with Google or Apple login, first set a password in the Dreame Home app:
 
-## Domoticz instellingen
+`Profile -> Settings -> Account and Security -> Password`
 
-- Mode1: Dreame Home email
-- Mode2: Dreame Home password
-- Mode3: regio, meestal `eu`
-- Mode4: device id optioneel; leeg = eerste vacuum
-- Mode5: poll interval, bv. `30`
-- Mode6: debug
+## Domoticz Hardware Settings
 
-## Functies
+- **Mode1**: Dreame Home email
+- **Mode2**: Dreame Home password
+- **Mode3**: Region (usually `eu`)
+- **Mode4**: Optional device ID (`did`); leave empty to use the first vacuum
+- **Mode5**: Poll interval in seconds (for example `30`)
+- **Mode6**: Debug mode (`False` or `True`)
 
-- Login via Dreame Home API
-- Device lijst ophalen
-- Status/batterij/error uitlezen via cloud cache met live command-relay fallback
-- Start / Pause / Dock / Stop / Locate via Dreame command relay
-- Zuigkracht en waterniveau via MIoT properties door Dreame cloud relay
+## Notes
 
-## Belangrijk
+- The plugin uses reverse-engineered cloud endpoints.
+- API behavior can change without notice if Dreame updates backend services.
+- Some Dreame Home-only models may return an empty cloud cache; this version automatically switches to live `get_properties` calls through the Dreame command relay.
 
-Deze plugin gebruikt reverse-engineered cloud endpoints. Dreame kan deze zonder aankondiging wijzigen.
+## Changelog (v90.5.2)
 
-
-## v90.5.2
-
-Fix voor DreameHome-only modellen die een lege cloud-cache (`raw: {}`) teruggeven. De plugin gebruikt nu automatisch live `get_properties` via de Dreame command relay en gebruikt per-property `did` waarden zoals de Dreame MIoT mapping verwacht.
-
-
-## v90.5.2
-- Confirmed DreameHome API login/device discovery/status path.
-- Fixed set_properties payload for suction and water to use the Dreame per-property did values.
-- No Xiaomi, no python-miio, no Home Assistant dependency.
+- Confirmed Dreame Home API login, device discovery, and status path
+- Added fallback for models returning empty cloud cache (`raw: {}`)
+- Fixed `set_properties` payload for suction and water levels by using per-property `did` values
+- No Xiaomi, `python-miio`, or Home Assistant dependency
