@@ -10,7 +10,6 @@ import requests
 
 PASSWORD_SALT = 'RAylYC%fmSKp7%Tq'
 BASIC_AUTH = 'ZHJlYW1lX2FwcHYxOkFQXmR2QHpAU1FZVnhOODg='
-USER_AGENT = 'Dreame_Smarthome/2.1.9 (iPhone; iOS 18.4.1; Scale/3.00)'
 TOKEN_REFRESH_MARGIN = 120
 
 PROP = {
@@ -128,7 +127,6 @@ class DreameApi:
         return {
             'Authorization': f'Basic {BASIC_AUTH}',
             'Tenant-Id': self.tenant_id,
-            'User-Agent': USER_AGENT,
             'Accept': '*/*',
             'Accept-Language': 'en-US;q=0.8',
         }
