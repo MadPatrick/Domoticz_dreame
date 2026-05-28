@@ -39,6 +39,11 @@ sudo systemctl start domoticz
 
 Adjust the plugin path above if your Domoticz installation uses a different location.
 
+## Configuration
+
+- The `Region` parameter is a selector with these choices: `EU`, `DE`, `CN`, `US`, `RU`, `TW`, `SG`, `IN`, `I2`.
+- Default region is `EU`.
+
 ## Managing Rooms
 
 Because L40 map/room data is not returned through the regular `sendCommand` route, this version uses a stable room cache.
