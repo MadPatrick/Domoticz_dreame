@@ -64,8 +64,8 @@ UNIT_DETAILS = 7
 UNIT_ROOMS_TEXT = 8
 UNIT_ROOM_CLEAN = 9
 UNIT_MODEL = 10
-UNIT_PROFILE = 11
-UNIT_CONTROL_LEGACY = 12
+UNIT_CONTROL_LEGACY = 11
+UNIT_CONTROL_LEGACY_OLD = 12
 
 STATUS_LEVELS = {0:'Unknown',10:'Idle',20:'Cleaning',30:'Paused',40:'Returning',50:'Docked',60:'Charging',70:'Error'}
 FAN_LEVELS = {0:'Unknown',10:'Quiet',20:'Standard',30:'Strong',40:'Turbo'}
@@ -213,7 +213,6 @@ class BasePlugin:
             self.model_profile = get_model_profile(self.model)
 
             profile_name = self.model_profile.get("name", "Generic Dreame")
-            profile_key = self.model_profile.get("profile_key", "default")
 
             Domoticz.Log("Dreame API connected. Device: {} did={} model={} profile={} bindDomain={}".format(
                 self.device.get("name") or self.device.get("customName") or "Dreame",
@@ -224,7 +223,6 @@ class BasePlugin:
             ))
 
             self.update_text(UNIT_MODEL, "{} ({})".format(profile_name, self.model))
-            self.update_text(UNIT_PROFILE, profile_key)
             self.update_error("OK")
             self.refresh_rooms(force=True)
             self.write_debug_dump()
@@ -473,6 +471,8 @@ class BasePlugin:
         self.ensure_selector(UNIT_CONTROL, self.device_prefix() + " Control", CONTROL_LEVELS, level_off_hidden="true")
         if UNIT_CONTROL in Devices and UNIT_CONTROL_LEGACY in Devices:
             Devices[UNIT_CONTROL_LEGACY].Delete()
+        if UNIT_CONTROL in Devices and UNIT_CONTROL_LEGACY_OLD in Devices:
+            Devices[UNIT_CONTROL_LEGACY_OLD].Delete()
         if UNIT_BATTERY not in Devices:
             Domoticz.Device(Name=self.device_prefix() + " Battery", Unit=UNIT_BATTERY, TypeName="Percentage", Used=1).Create()
         if UNIT_ERROR not in Devices:
@@ -489,8 +489,6 @@ class BasePlugin:
         self.ensure_selector(UNIT_ROOM_CLEAN, self.device_prefix() + " Room Clean", initial_room_levels, level_off_hidden="true")
         if UNIT_MODEL not in Devices:
             Domoticz.Device(Name=self.device_prefix() + " Model", Unit=UNIT_MODEL, TypeName="Text", Used=1).Create()
-        if UNIT_PROFILE not in Devices:
-            Domoticz.Device(Name=self.device_prefix() + " Profile", Unit=UNIT_PROFILE, TypeName="Text", Used=1).Create()
 
     def ensure_selector(self, unit: int, name: str, levels: Dict[int, str], selector_style: str = "0", level_off_hidden: str = "false"):
         options = {
