@@ -510,7 +510,16 @@ class BasePlugin:
             except Exception as exc:
                 Domoticz.Log("Could not update selector options for {}: {}".format(name, exc))
         else:
-            self.log_debug("Domoticz has no UpdateOptions for {}; existing selector options kept".format(name))
+            current_options = getattr(Devices[unit], "Options", {}) or {}
+            changed = any(str(current_options.get(k, "")) != str(v) for k, v in options.items())
+            if not changed:
+                return
+            try:
+                Devices[unit].Delete()
+                Domoticz.Device(Name=name, Unit=unit, TypeName="Selector Switch", Switchtype=18, Image=7, Options=options, Used=1).Create()
+                Domoticz.Log("Recreated selector {} to apply changed options".format(name))
+            except Exception as exc:
+                Domoticz.Log("Could not recreate selector {}: {}".format(name, exc))
 
     def update_selector(self, unit: int, level: int):
         if unit in Devices:
