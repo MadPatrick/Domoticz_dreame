@@ -511,9 +511,9 @@ class BasePlugin:
                 Domoticz.Log("Could not update selector options for {}: {}".format(name, exc))
         else:
             current_options = getattr(Devices[unit], "Options", {})
-            changed = set(current_options.keys()) != set(options.keys()) or any(
-                str(current_options.get(k, "")) != str(v) for k, v in options.items()
-            )
+            current_normalized = {str(k): str(v) for k, v in current_options.items()}
+            wanted_normalized = {str(k): str(v) for k, v in options.items()}
+            changed = current_normalized != wanted_normalized
             if not changed:
                 return
             try:
