@@ -189,7 +189,7 @@ class BasePlugin:
 
         self.create_devices()
         self.update_rooms_devices()
-        Domoticz.Log("Starting Dreame API plugin v0.8.1 dynamic device names")
+        Domoticz.Log("Starting Dreame API plugin")
 
         if DreameApi is None:
             self.update_error("Import failed: {}".format(_IMPORT_ERROR))
