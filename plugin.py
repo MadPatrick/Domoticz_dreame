@@ -510,8 +510,10 @@ class BasePlugin:
             except Exception as exc:
                 Domoticz.Log("Could not update selector options for {}: {}".format(name, exc))
         else:
-            current_options = getattr(Devices[unit], "Options", {}) or {}
-            changed = any(str(current_options.get(k, "")) != str(v) for k, v in options.items())
+            current_options = getattr(Devices[unit], "Options", {})
+            changed = set(current_options.keys()) != set(options.keys()) or any(
+                str(current_options.get(k, "")) != str(v) for k, v in options.items()
+            )
             if not changed:
                 return
             try:
