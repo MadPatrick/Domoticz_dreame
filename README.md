@@ -38,7 +38,7 @@ Adjust the plugin path above if your Domoticz installation uses a different loca
 
 ## Managing Rooms
 
-Because L40 map/room data is not returned through the regular `sendCommand` route, this version uses a stable room cache.
+Because map/room data is not returned through the regular `sendCommand` route, this version uses a stable room cache.
 
 Show room list:
 
