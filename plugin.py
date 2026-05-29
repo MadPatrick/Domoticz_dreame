@@ -522,7 +522,7 @@ class BasePlugin:
         err_label = status.get("error_label") or "OK"
         self.update_error("OK" if err in (None, 0) else err_label)
 
-        self.update_text(UNIT_CHARGING, "{}".format(status.get("charging_status")))
+        self.update_text(UNIT_CHARGING, self.format_charging_status(status.get("charging_status")))
         self.update_text(UNIT_CLEANING_MODE, self.format_cleaning_mode(status.get("cleaning_mode")))
         self.update_text(UNIT_TASK_STATUS, self.format_task_status(status))
         self.update_switch(UNIT_DND, bool(status.get("dnd_enabled")))
@@ -607,8 +607,19 @@ class BasePlugin:
             return str(value)
         mode_label = CLEANING_MODE_LABELS.get(ivalue)
         if mode_label:
-            return mode_label
-        return str(ivalue)
+            return "{} ({} / 0x{:X})".format(mode_label, ivalue, ivalue)
+        return "{} (0x{:X})".format(ivalue, ivalue)
+
+    def format_charging_status(self, value: Any) -> str:
+        try:
+            ivalue = int(value)
+        except (TypeError, ValueError):
+            return "Unknown"
+        if ivalue in (1, 3):
+            return "Charging"
+        if ivalue in (0, 2):
+            return "Not charging"
+        return "Unknown"
 
     def format_task_status(self, status: Dict[str, Any]) -> str:
         raw = status.get("task_status")
