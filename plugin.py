@@ -700,16 +700,19 @@ class BasePlugin:
             if unit not in Devices:
                 continue
             name = str(getattr(Devices[unit], "Name", "")).lower()
-            if name.endswith(expected_suffix):
+            if name.endswith(expected_suffix) or name == expected_suffix.strip():
                 to_delete.append(unit)
         if not to_delete:
             return
+        deleted_units = []
         for unit in to_delete:
             try:
                 Devices[unit].Delete()
+                deleted_units.append(unit)
             except Exception as exc:
                 Domoticz.Log("Could not delete legacy unit {}: {}".format(unit, exc))
-        Domoticz.Log("Deleted legacy units with old numbering: {}".format(",".join(str(u) for u in to_delete)))
+        if deleted_units:
+            Domoticz.Log("Deleted legacy units with old numbering: {}".format(",".join(str(u) for u in deleted_units)))
 
     def ensure_selector(self, unit: int, name: str, levels: Dict[int, str], selector_style: str = "0", level_off_hidden: str = "false"):
         options = {
