@@ -85,11 +85,11 @@ CLEANING_MODE_LABELS = {
     5379: "Mop only? (confirm)",
 }
 TASK_STATUS_RAW_LABELS = {
-    0: "Idle",
-    1: "Cleaning?",
-    2: "Paused?",
-    3: "Returning?",
-    4: "Charging?",
+    0: "Geen actieve taak",
+    1: "Actieve taak",
+    2: "Gepauzeerd",
+    3: "Terug naar dock",
+    4: "Dock/Opladen",
 }
 ROOM_CACHE_FILE = "room_cache.json"
 
@@ -625,22 +625,37 @@ class BasePlugin:
         raw = status.get("task_status")
         task_state = status.get("task_state")
         progress = status.get("task_progress")
-        details = []
+
+        try:
+            raw = int(raw) if raw is not None else None
+        except Exception:
+            pass
+
+        if raw == 0 and (task_state in (None, "", "idle")):
+            return "Geen actieve schoonmaaktaak"
+
+        labels = {
+            "idle": "Stand-by",
+            "cleaning": "Schoonmaken",
+            "paused": "Gepauzeerd",
+            "returning": "Terug naar dock",
+            "charging": "Opladen",
+            "washing": "Moppen wassen",
+            "drying": "Moppen drogen",
+        }
+
+        if task_state:
+            label = labels.get(str(task_state).lower(), str(task_state))
+            try:
+                return "{} ({}%)".format(label, int(progress or 0))
+            except Exception:
+                return label
+
         raw_label = TASK_STATUS_RAW_LABELS.get(raw)
         if raw_label:
-            details.append("{} [raw={}]".format(raw_label, raw))
-        elif raw is not None:
-            details.append("raw={}".format(raw))
-        if task_state not in (None, ""):
-            details.append("state={}".format(task_state))
-        if progress is not None:
-            try:
-                details.append("progress={}%".format(int(progress)))
-            except (TypeError, ValueError):
-                details.append("progress={}".format(progress))
-        if details:
-            return ", ".join(details)
-        return "Unknown"
+            return raw_label
+
+        return "Onbekend"
 
     def map_state(self, state, charging_status=None) -> int:
         if state in (1, 7, 11, 12, 25, 27, 37, 38, 97, 101, 103, 104, 107):
