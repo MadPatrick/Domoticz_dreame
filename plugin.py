@@ -91,6 +91,9 @@ TASK_STATUS_RAW_LABELS = {
     3: "Returning?",
     4: "Charging?",
 }
+CONSUMABLE_MAIN_BRUSH_PROP = "9.1"
+CONSUMABLE_SIDE_BRUSH_PROP = "9.2"
+CONSUMABLE_FILTER_PROP = "9.3"
 
 ROOM_CACHE_FILE = "room_cache.json"
 
@@ -531,9 +534,12 @@ class BasePlugin:
             Devices[UNIT_TASK_PROGRESS].Update(nValue=int(status.get("task_progress") or 0), sValue=str(int(status.get("task_progress") or 0)))
         self.update_text(UNIT_TASK_JSON, self.compact(status.get("task_json")))
         self.update_text(UNIT_TIMEZONE, str(status.get("timezone")))
-        consumables = "Main brush (9.1): {} | Side brush (9.2): {} | Filter (9.3): {}".format(
+        consumables = "Main brush ({}): {} | Side brush ({}): {} | Filter ({}): {}".format(
+            CONSUMABLE_MAIN_BRUSH_PROP,
             status.get("consumable_9_1"),
+            CONSUMABLE_SIDE_BRUSH_PROP,
             status.get("consumable_9_2"),
+            CONSUMABLE_FILTER_PROP,
             status.get("consumable_9_3"),
         )
         self.update_text(UNIT_CONSUMABLES, consumables)
