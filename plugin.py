@@ -72,16 +72,25 @@ UNIT_TASK_STATUS = 15
 UNIT_DND = 16
 UNIT_TASK_PROGRESS = 17
 UNIT_TASK_JSON = 18
-UNIT_MAP_OBJECT = 19
-UNIT_TIMEZONE = 20
-UNIT_VOICE = 21
-UNIT_CONSUMABLES = 22
+UNIT_TIMEZONE = 19
+UNIT_CONSUMABLES = 20
 
 STATUS_LEVELS = {0: "Unknown", 10: "Idle", 20: "Cleaning", 30: "Paused", 40: "Returning", 50: "Docked", 60: "Charging", 70: "Error"}
 FAN_LEVELS = {0: "Unknown", 10: "Quiet", 20: "Standard", 30: "Strong", 40: "Turbo"}
 WATER_LEVELS = {0: "Unknown", 10: "Low", 20: "Medium", 30: "High"}
 CONTROL_LEVELS = {0: "Off", 10: "Start", 20: "Pause", 30: "Dock", 40: "Stop", 50: "Locate"}
-
+CLEANING_MODE_LABELS = {
+    5377: "Vacuum only",
+    5378: "Vacuum + Mop",
+    5379: "Mop only? (confirm)",
+}
+TASK_STATUS_RAW_LABELS = {
+    0: "Idle",
+    1: "Cleaning?",
+    2: "Paused?",
+    3: "Returning?",
+    4: "Charging?",
+}
 ROOM_CACHE_FILE = "room_cache.json"
 
 
@@ -513,18 +522,19 @@ class BasePlugin:
         err_label = status.get("error_label") or "OK"
         self.update_error("OK" if err in (None, 0) else err_label)
 
-        self.update_text(UNIT_CHARGING, "{}".format(status.get("charging_status")))
-        self.update_text(UNIT_CLEANING_MODE, "{}".format(status.get("cleaning_mode")))
-        self.update_text(UNIT_TASK_STATUS, "{}".format(status.get("task_status")))
+        self.update_text(UNIT_CHARGING, self.format_charging_status(status.get("charging_status")))
+        self.update_text(UNIT_CLEANING_MODE, self.format_cleaning_mode(status.get("cleaning_mode")))
+        self.update_text(UNIT_TASK_STATUS, self.format_task_status(status))
         self.update_switch(UNIT_DND, bool(status.get("dnd_enabled")))
         if status.get("task_progress") is not None and UNIT_TASK_PROGRESS in Devices:
             Devices[UNIT_TASK_PROGRESS].Update(nValue=int(status.get("task_progress") or 0), sValue=str(int(status.get("task_progress") or 0)))
-        self.update_text(UNIT_TASK_JSON, self.compact(status.get("task_json")))
-        self.update_text(UNIT_MAP_OBJECT, self.compact(status.get("map_object")))
+        self.update_text(UNIT_TASK_JSON, self.format_task_json(status.get("task_json")))
         self.update_text(UNIT_TIMEZONE, str(status.get("timezone")))
-        voice = "{} vol={} supported={}".format(status.get("voice_language"), status.get("volume"), status.get("voice_supported"))
-        self.update_text(UNIT_VOICE, voice)
-        consumables = "9.1={} 9.2={} 9.3={}".format(status.get("consumable_9_1"), status.get("consumable_9_2"), status.get("consumable_9_3"))
+        consumables = "Main brush: {}\nSide brush: {}\nFilter: {}".format(
+            status.get("consumable_9_1"),
+            status.get("consumable_9_2"),
+            status.get("consumable_9_3"),
+        )
         self.update_text(UNIT_CONSUMABLES, consumables)
 
         details = "State: {}; Battery: {}%; Area: {}; Time: {}; Task: {}; Suction: {}; Water: {}".format(
@@ -539,9 +549,98 @@ class BasePlugin:
         self.update_text(UNIT_DETAILS, details)
 
     def compact(self, value: Any) -> str:
+        value = self.parse_jsonish_text(value)
         if isinstance(value, (dict, list)):
             return json.dumps(value, ensure_ascii=False, separators=(",", ":"))[:255]
         return str(value)[:255]
+
+    def format_task_json(self, value: Any) -> str:
+        value = self.parse_jsonish_text(value)
+        if isinstance(value, dict):
+            parts = []
+            for key in sorted(value):
+                parts.append("{}: {}".format(key, value.get(key)))
+            return " | ".join(parts)[:255]
+        if isinstance(value, list):
+            parts = []
+            for item in value:
+                if isinstance(item, dict):
+                    parts.append(", ".join("{}: {}".format(k, item[k]) for k in sorted(item)))
+                else:
+                    parts.append(str(item))
+            return " | ".join(parts)[:255]
+        return str(value)[:255]
+
+    def parse_jsonish_text(self, value: Any) -> Any:
+        if not isinstance(value, str):
+            return value
+        text = value.strip()
+        if not text:
+            return value
+        candidates = [text]
+        if '\\"' in text:
+            candidates.append(text.replace('\\"', '"'))
+        if text.startswith('"') and text.endswith('"') and len(text) >= 2:
+            inner = text[1:-1]
+            candidates.append(inner)
+            if '\\"' in inner:
+                candidates.append(inner.replace('\\"', '"'))
+        for candidate in candidates:
+            current = candidate
+            for _ in range(2):
+                try:
+                    decoded = json.loads(current)
+                except (json.JSONDecodeError, TypeError, ValueError):
+                    break
+                if isinstance(decoded, str):
+                    current = decoded
+                    continue
+                return decoded
+        return value
+
+    def format_cleaning_mode(self, value: Any) -> str:
+        if value is None:
+            return "Unknown"
+        try:
+            ivalue = int(value)
+        except (TypeError, ValueError):
+            return str(value)
+        mode_label = CLEANING_MODE_LABELS.get(ivalue)
+        if mode_label:
+            return mode_label
+        return str(ivalue)
+
+    def format_charging_status(self, value: Any) -> str:
+        try:
+            ivalue = int(value)
+        except (TypeError, ValueError):
+            return "Unknown"
+        if ivalue in (1, 3):
+            return "Charging"
+        if ivalue in (0, 2):
+            return "Not charging"
+        return "Unknown"
+
+    def format_task_status(self, status: Dict[str, Any]) -> str:
+        raw = status.get("task_status")
+        task_state = status.get("task_state")
+        progress = status.get("task_progress")
+        details = []
+        raw_label = TASK_STATUS_RAW_LABELS.get(raw)
+        if raw_label:
+            details.append("{} [raw={}]".format(raw_label, raw))
+        elif raw is not None:
+            details.append("raw={}".format(raw))
+        if task_state not in (None, ""):
+            details.append("state={}".format(task_state))
+        if progress is not None:
+            try:
+                details.append("progress={}%".format(int(progress)))
+            except (TypeError, ValueError):
+                details.append("progress={}".format(progress))
+        if details:
+            return ", ".join(details)
+        return "Unknown"
 
     def map_state(self, state, charging_status=None) -> int:
         if state in (1, 7, 11, 12, 25, 27, 37, 38, 97, 101, 103, 104, 107):
@@ -582,9 +681,7 @@ class BasePlugin:
             (UNIT_CLEANING_MODE, "Cleaning Mode"),
             (UNIT_TASK_STATUS, "Task Status"),
             (UNIT_TASK_JSON, "Task JSON"),
-            (UNIT_MAP_OBJECT, "Map Object"),
             (UNIT_TIMEZONE, "Timezone"),
-            (UNIT_VOICE, "Voice"),
             (UNIT_CONSUMABLES, "Consumables"),
         ]:
             if unit not in Devices:

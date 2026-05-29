@@ -673,14 +673,24 @@ class DreameApi:
     def _decode_jsonish(self, value: Any) -> Any:
         if not isinstance(value, str) or value == "":
             return value
-        text = value
-        for _ in range(2):
-            try:
-                decoded = json.loads(text)
-            except Exception:
-                return value
-            if isinstance(decoded, str):
-                text = decoded
-                continue
-            return decoded
+        text = value.strip()
+        candidates = [text]
+        if '\\"' in text:
+            candidates.append(text.replace('\\"', '"'))
+        if text.startswith('"') and text.endswith('"') and len(text) >= 2:
+            inner = text[1:-1]
+            candidates.append(inner)
+            if '\\"' in inner:
+                candidates.append(inner.replace('\\"', '"'))
+        for candidate in candidates:
+            current = candidate
+            for _ in range(2):
+                try:
+                    decoded = json.loads(current)
+                except (json.JSONDecodeError, TypeError, ValueError):
+                    break
+                if isinstance(decoded, str):
+                    current = decoded
+                    continue
+                return decoded
         return value
