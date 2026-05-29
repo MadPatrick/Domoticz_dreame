@@ -712,7 +712,7 @@ class BasePlugin:
             except Exception as exc:
                 Domoticz.Log("Could not delete legacy unit {}: {}".format(unit, exc))
         if deleted_units:
-            Domoticz.Log("Deleted legacy units with old numbering: {}".format(",".join(str(u) for u in deleted_units)))
+            Domoticz.Log("Deleted legacy units with old numbering: {}".format(", ".join(str(u) for u in deleted_units)))
 
     def ensure_selector(self, unit: int, name: str, levels: Dict[int, str], selector_style: str = "0", level_off_hidden: str = "false"):
         options = {
