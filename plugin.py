@@ -24,7 +24,6 @@
                 <option label="True" value="True" />
             </options>
         </param>
-        <param field="Mode7" label="Room refresh interval seconds" width="75px" required="false" default="300" />
     </params>
 </plugin>
 """
@@ -71,9 +70,8 @@ UNIT_CLEANING_MODE = 14
 UNIT_TASK_STATUS = 15
 UNIT_DND = 16
 UNIT_TASK_PROGRESS = 17
-UNIT_TASK_JSON = 18
-UNIT_TIMEZONE = 19
-UNIT_CONSUMABLES = 20
+UNIT_TIMEZONE = 18
+UNIT_CONSUMABLES = 19
 
 STATUS_LEVELS = {0: "Unknown", 10: "Idle", 20: "Cleaning", 30: "Paused", 40: "Returning", 50: "Docked", 60: "Charging", 70: "Error"}
 FAN_LEVELS = {0: "Unknown", 10: "Quiet", 20: "Standard", 30: "Strong", 40: "Turbo"}
@@ -175,9 +173,7 @@ class BasePlugin:
         self.model = ""
         self.model_profile: Dict[str, Any] = {}
         self.poll_interval = 30
-        self.room_refresh_interval = 300
         self.last_poll = 0.0
-        self.last_room_refresh = 0.0
         self.debug = False
         self.rooms: List[Dict[str, Any]] = []
         self.room_cache: Optional[RoomCache] = None
@@ -204,7 +200,6 @@ class BasePlugin:
             Domoticz.Debugging(1)
 
         self.poll_interval = int(Parameters.get("Mode5", "30") or 30)
-        self.room_refresh_interval = int(Parameters.get("Mode7", "300") or 300)
         self.room_cache = RoomCache(os.path.join(self.plugin_dir(), ROOM_CACHE_FILE), logger=self.log_debug)
         self.rooms = self.room_cache.load()
 
@@ -241,7 +236,7 @@ class BasePlugin:
             ))
             self.update_text(UNIT_MODEL, "{} ({})".format(profile_name, self.model))
             self.update_error("OK")
-            self.refresh_rooms(force=True)
+            self.refresh_rooms()
             self.write_debug_dump()
         except Exception as exc:
             self.api = None
@@ -257,7 +252,7 @@ class BasePlugin:
 
     def onHeartbeat(self):
         self.poll(force=False)
-        self.refresh_rooms(force=False)
+        self.refresh_rooms()
 
     def onCommand(self, Unit, Command, Level, Hue):
         self.log_debug("onCommand Unit={} Command={} Level={}".format(Unit, Command, Level))
@@ -410,11 +405,7 @@ class BasePlugin:
             Domoticz.Error("Polling failed for did={} bindDomain={}: {}".format(self.did, self.bind_domain, exc))
             self.update_error("Poll failed: {}".format(exc))
 
-    def refresh_rooms(self, force: bool = False):
-        now = time.time()
-        if not force and now - self.last_room_refresh < self.room_refresh_interval:
-            return
-        self.last_room_refresh = now
+    def refresh_rooms(self):
         if not self.room_cache:
             return
         api_rooms = []
@@ -528,7 +519,6 @@ class BasePlugin:
         self.update_switch(UNIT_DND, bool(status.get("dnd_enabled")))
         if status.get("task_progress") is not None and UNIT_TASK_PROGRESS in Devices:
             Devices[UNIT_TASK_PROGRESS].Update(nValue=int(status.get("task_progress") or 0), sValue=str(int(status.get("task_progress") or 0)))
-        self.update_text(UNIT_TASK_JSON, self.format_task_json(status.get("task_json")))
         self.update_text(UNIT_TIMEZONE, str(status.get("timezone")))
         consumables = "Hoofdborstel: {} | Zijborstel: {} | Filter: {}".format(
             status.get("main_brush"),
@@ -695,7 +685,6 @@ class BasePlugin:
             (UNIT_CHARGING, "Charging Status"),
             (UNIT_CLEANING_MODE, "Cleaning Mode"),
             (UNIT_TASK_STATUS, "Task Status"),
-            (UNIT_TASK_JSON, "Task JSON"),
             (UNIT_TIMEZONE, "Timezone"),
             (UNIT_CONSUMABLES, "Consumables"),
         ]:
