@@ -79,6 +79,18 @@ STATUS_LEVELS = {0: "Unknown", 10: "Idle", 20: "Cleaning", 30: "Paused", 40: "Re
 FAN_LEVELS = {0: "Unknown", 10: "Quiet", 20: "Standard", 30: "Strong", 40: "Turbo"}
 WATER_LEVELS = {0: "Unknown", 10: "Low", 20: "Medium", 30: "High"}
 CONTROL_LEVELS = {0: "Off", 10: "Start", 20: "Pause", 30: "Dock", 40: "Stop", 50: "Locate"}
+CLEANING_MODE_LABELS = {
+    5377: "Vacuum only",
+    5378: "Vacuum + Mop",
+    5379: "Mop only? (confirm)",
+}
+TASK_STATUS_RAW_LABELS = {
+    0: "Idle",
+    1: "Cleaning?",
+    2: "Paused?",
+    3: "Returning?",
+    4: "Charging?",
+}
 
 ROOM_CACHE_FILE = "room_cache.json"
 
@@ -519,7 +531,11 @@ class BasePlugin:
             Devices[UNIT_TASK_PROGRESS].Update(nValue=int(status.get("task_progress") or 0), sValue=str(int(status.get("task_progress") or 0)))
         self.update_text(UNIT_TASK_JSON, self.compact(status.get("task_json")))
         self.update_text(UNIT_TIMEZONE, str(status.get("timezone")))
-        consumables = "9.1={} 9.2={} 9.3={}".format(status.get("consumable_9_1"), status.get("consumable_9_2"), status.get("consumable_9_3"))
+        consumables = "Main brush (9.1): {} | Side brush (9.2): {} | Filter (9.3): {}".format(
+            status.get("consumable_9_1"),
+            status.get("consumable_9_2"),
+            status.get("consumable_9_3"),
+        )
         self.update_text(UNIT_CONSUMABLES, consumables)
 
         details = "State: {}; Battery: {}%; Area: {}; Time: {}; Task: {}; Suction: {}; Water: {}".format(
@@ -573,6 +589,9 @@ class BasePlugin:
             ivalue = int(value)
         except (TypeError, ValueError):
             return str(value)
+        mode_label = CLEANING_MODE_LABELS.get(ivalue)
+        if mode_label:
+            return "{} ({} / 0x{:X})".format(mode_label, ivalue, ivalue)
         return "{} (0x{:X})".format(ivalue, ivalue)
 
     def format_task_status(self, status: Dict[str, Any]) -> str:
@@ -580,20 +599,21 @@ class BasePlugin:
         task_state = status.get("task_state")
         progress = status.get("task_progress")
         details = []
+        raw_label = TASK_STATUS_RAW_LABELS.get(raw)
+        if raw_label:
+            details.append("{} [raw={}]".format(raw_label, raw))
+        elif raw is not None:
+            details.append("raw={}".format(raw))
         if task_state not in (None, ""):
-            details.append(str(task_state))
+            details.append("state={}".format(task_state))
         if progress is not None:
             try:
-                details.append("{}%".format(int(progress)))
+                details.append("progress={}%".format(int(progress)))
             except (TypeError, ValueError):
                 details.append("progress={}".format(progress))
-        if details and raw is not None:
-            return "{} (raw={})".format(", ".join(details), raw)
         if details:
             return ", ".join(details)
-        if raw is None:
-            return "Unknown"
-        return str(raw)
+        return "Unknown"
 
     def map_state(self, state, charging_status=None) -> int:
         if state in (1, 7, 11, 12, 25, 27, 37, 38, 97, 101, 103, 104, 107):
