@@ -591,7 +591,7 @@ class BasePlugin:
             try:
                 details.append("{}%".format(int(progress)))
             except (TypeError, ValueError):
-                details.append("{}%".format(progress))
+                details.append("progress={}".format(progress))
         if details and raw is not None:
             return "{} (raw={})".format(", ".join(details), raw)
         if details:
