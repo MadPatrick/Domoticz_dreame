@@ -514,8 +514,8 @@ class BasePlugin:
         self.update_error("OK" if err in (None, 0) else err_label)
 
         self.update_text(UNIT_CHARGING, "{}".format(status.get("charging_status")))
-        self.update_text(UNIT_CLEANING_MODE, "{}".format(status.get("cleaning_mode")))
-        self.update_text(UNIT_TASK_STATUS, "{}".format(status.get("task_status")))
+        self.update_text(UNIT_CLEANING_MODE, self.format_cleaning_mode(status.get("cleaning_mode")))
+        self.update_text(UNIT_TASK_STATUS, self.format_task_status(status))
         self.update_switch(UNIT_DND, bool(status.get("dnd_enabled")))
         if status.get("task_progress") is not None and UNIT_TASK_PROGRESS in Devices:
             Devices[UNIT_TASK_PROGRESS].Update(nValue=int(status.get("task_progress") or 0), sValue=str(int(status.get("task_progress") or 0)))
@@ -539,9 +539,63 @@ class BasePlugin:
         self.update_text(UNIT_DETAILS, details)
 
     def compact(self, value: Any) -> str:
+        value = self.parse_jsonish_text(value)
         if isinstance(value, (dict, list)):
             return json.dumps(value, ensure_ascii=False, separators=(",", ":"))[:255]
         return str(value)[:255]
+
+    def parse_jsonish_text(self, value: Any) -> Any:
+        if not isinstance(value, str):
+            return value
+        text = value.strip()
+        if not text:
+            return value
+        candidates = [text]
+        if '\\"' in text:
+            candidates.append(text.replace('\\"', '"'))
+        if text.startswith('"') and text.endswith('"') and len(text) >= 2:
+            inner = text[1:-1]
+            candidates.append(inner)
+            if '\\"' in inner:
+                candidates.append(inner.replace('\\"', '"'))
+        for candidate in candidates:
+            current = candidate
+            for _ in range(2):
+                try:
+                    decoded = json.loads(current)
+                except Exception:
+                    break
+                if isinstance(decoded, str):
+                    current = decoded
+                    continue
+                return decoded
+        return value
+
+    def format_cleaning_mode(self, value: Any) -> str:
+        if value is None:
+            return "Unknown"
+        try:
+            ivalue = int(value)
+        except Exception:
+            return str(value)
+        return "{} (0x{:X})".format(ivalue, ivalue)
+
+    def format_task_status(self, status: Dict[str, Any]) -> str:
+        raw = status.get("task_status")
+        task_state = status.get("task_state")
+        progress = status.get("task_progress")
+        details = []
+        if task_state not in (None, ""):
+            details.append(str(task_state))
+        if progress is not None:
+            details.append("{}%".format(int(progress)))
+        if details and raw is not None:
+            return "{} (raw={})".format(", ".join(details), raw)
+        if details:
+            return ", ".join(details)
+        if raw is None:
+            return "Unknown"
+        return str(raw)
 
     def map_state(self, state, charging_status=None) -> int:
         if state in (1, 7, 11, 12, 25, 27, 37, 38, 97, 101, 103, 104, 107):
