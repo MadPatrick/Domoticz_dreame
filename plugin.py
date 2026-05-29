@@ -91,10 +91,6 @@ TASK_STATUS_RAW_LABELS = {
     3: "Returning?",
     4: "Charging?",
 }
-CONSUMABLE_MAIN_BRUSH_PROP = "9.1"
-CONSUMABLE_SIDE_BRUSH_PROP = "9.2"
-CONSUMABLE_FILTER_PROP = "9.3"
-
 ROOM_CACHE_FILE = "room_cache.json"
 
 
@@ -532,14 +528,11 @@ class BasePlugin:
         self.update_switch(UNIT_DND, bool(status.get("dnd_enabled")))
         if status.get("task_progress") is not None and UNIT_TASK_PROGRESS in Devices:
             Devices[UNIT_TASK_PROGRESS].Update(nValue=int(status.get("task_progress") or 0), sValue=str(int(status.get("task_progress") or 0)))
-        self.update_text(UNIT_TASK_JSON, self.compact(status.get("task_json")))
+        self.update_text(UNIT_TASK_JSON, self.format_task_json(status.get("task_json")))
         self.update_text(UNIT_TIMEZONE, str(status.get("timezone")))
-        consumables = "Main brush ({}): {} | Side brush ({}): {} | Filter ({}): {}".format(
-            CONSUMABLE_MAIN_BRUSH_PROP,
+        consumables = "Main brush: {}\nSide brush: {}\nFilter: {}".format(
             status.get("consumable_9_1"),
-            CONSUMABLE_SIDE_BRUSH_PROP,
             status.get("consumable_9_2"),
-            CONSUMABLE_FILTER_PROP,
             status.get("consumable_9_3"),
         )
         self.update_text(UNIT_CONSUMABLES, consumables)
@@ -559,6 +552,23 @@ class BasePlugin:
         value = self.parse_jsonish_text(value)
         if isinstance(value, (dict, list)):
             return json.dumps(value, ensure_ascii=False, separators=(",", ":"))[:255]
+        return str(value)[:255]
+
+    def format_task_json(self, value: Any) -> str:
+        value = self.parse_jsonish_text(value)
+        if isinstance(value, dict):
+            parts = []
+            for key in sorted(value):
+                parts.append("{}: {}".format(key, value.get(key)))
+            return " | ".join(parts)[:255]
+        if isinstance(value, list):
+            parts = []
+            for item in value:
+                if isinstance(item, dict):
+                    parts.append(", ".join("{}: {}".format(k, item.get(k)) for k in sorted(item)))
+                else:
+                    parts.append(str(item))
+            return " | ".join(parts)[:255]
         return str(value)[:255]
 
     def parse_jsonish_text(self, value: Any) -> Any:
