@@ -54,27 +54,28 @@ except Exception:
 
 
 UNIT_STATUS = 1
-UNIT_CONTROL = 2
-UNIT_BATTERY = 3
-UNIT_ERROR = 4
-UNIT_FAN = 5
-UNIT_WATER = 6
-UNIT_DETAILS = 7
-UNIT_ROOMS_TEXT = 8
-UNIT_ROOM_CLEAN = 9
-UNIT_MODEL = 10
-UNIT_CONTROL_LEGACY = 11
-UNIT_CONTROL_LEGACY_OLD = 12
-UNIT_CHARGING = 13
-UNIT_CLEANING_MODE = 14
-UNIT_TASK_STATUS = 15
-UNIT_DND = 16
-UNIT_TASK_PROGRESS = 17
-UNIT_TIMEZONE = 18
-UNIT_CONSUMABLES = 19
+UNIT_CONTROL = UNIT_STATUS + 1
+UNIT_BATTERY = UNIT_CONTROL + 1
+UNIT_ERROR = UNIT_BATTERY + 1
+UNIT_FAN = UNIT_ERROR + 1
+UNIT_WATER = UNIT_FAN + 1
+UNIT_DETAILS = UNIT_WATER + 1
+UNIT_ROOMS_TEXT = UNIT_DETAILS + 1
+UNIT_ROOM_CLEAN = UNIT_ROOMS_TEXT + 1
+UNIT_MODEL = UNIT_ROOM_CLEAN + 1
+UNIT_CONTROL_LEGACY = UNIT_MODEL + 1
+UNIT_CONTROL_LEGACY_OLD = UNIT_CONTROL_LEGACY + 1
+UNIT_CHARGING = UNIT_CONTROL_LEGACY_OLD + 1
+UNIT_CLEANING_MODE = UNIT_CHARGING + 1
+UNIT_TASK_STATUS = UNIT_CLEANING_MODE + 1
+UNIT_DND = UNIT_TASK_STATUS + 1
+UNIT_TASK_PROGRESS = UNIT_DND + 1
+UNIT_CONSUMABLES = UNIT_TASK_PROGRESS + 1
 LEGACY_UNIT_SIGNATURES = (
     (18, " task json"),
+    (18, " timezone"),
     (19, " timezone"),
+    (19, " consumables"),
     (20, " consumables"),
 )
 
@@ -525,7 +526,6 @@ class BasePlugin:
         self.update_switch(UNIT_DND, bool(status.get("dnd_enabled")))
         if status.get("task_progress") is not None and UNIT_TASK_PROGRESS in Devices:
             Devices[UNIT_TASK_PROGRESS].Update(nValue=int(status.get("task_progress") or 0), sValue=str(int(status.get("task_progress") or 0)))
-        self.update_text(UNIT_TIMEZONE, str(status.get("timezone")))
         consumables = "Hoofdborstel: {} | Zijborstel: {} | Filter: {}".format(
             status.get("main_brush"),
             status.get("side_brush"),
@@ -675,7 +675,6 @@ class BasePlugin:
             (UNIT_CHARGING, "Charging Status"),
             (UNIT_CLEANING_MODE, "Cleaning Mode"),
             (UNIT_TASK_STATUS, "Task Status"),
-            (UNIT_TIMEZONE, "Timezone"),
             (UNIT_CONSUMABLES, "Consumables"),
         ]:
             if unit not in Devices:
